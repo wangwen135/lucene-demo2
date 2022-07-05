@@ -1,0 +1,9 @@
+/target/
+/log
+/.settings/
+.classpath
+.project
+*.log
+.idea
+*.iml
+src/main/resources/index
