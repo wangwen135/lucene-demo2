@@ -3,33 +3,32 @@ package com.wwh.test.lucene.extend;
 import java.io.IOException;
 
 import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.search.FieldCache;
 import org.apache.lucene.search.FieldCache.IntParser;
 import org.apache.lucene.search.FieldComparator;
-import org.apache.lucene.util.BytesRef;
 
 //根据条件，获取推荐时间 或者 更新时间
-public class MyFieldComparator extends FieldComparator<Long> {
+public class MyFieldComparator2 extends FieldComparator<Long> {
 
     private long[] values;
     private IntParser parser;
     private FieldCache.Longs currentRecommendTimeReader;
     private FieldCache.Longs currentUpdateTimeReader;
     private FieldCache.Ints currentCityReader;
-
-    // 测试读取字符串
-    private BinaryDocValues binaryDocValues;
+    private FieldCache.Ints currentRecommendReader;
 
     private long bottom;
     private long topValue;
 
     private int queryCity;
+    private int queryRecommend;
 
-    public MyFieldComparator(int numHits, int qCity) {
+    public MyFieldComparator2(int numHits, int qCity, int recommend) {
         this.values = new long[numHits];
         this.queryCity = qCity;
-        this.parser = FieldCache.DEFAULT_INT_PARSER;
+//        this.parser = FieldCache.DEFAULT_INT_PARSER;
+        this.parser = FieldCache.NUMERIC_UTILS_INT_PARSER;
+        this.queryRecommend = recommend;
     }
 
     @Override
@@ -57,14 +56,7 @@ public class MyFieldComparator extends FieldComparator<Long> {
 
     @Override
     public int compareBottom(int doc) throws IOException {
-        int city = currentCityReader.get(doc);
-        long docValue = 0;
-        if (city == queryCity) {
-            docValue = currentRecommendTimeReader.get(doc);
-        } else {
-            docValue = currentUpdateTimeReader.get(doc);
-        }
-
+        long docValue = getCorrectValue(doc);
         if (bottom > docValue) {
             return 1;
         } else if (bottom < docValue) {
@@ -76,13 +68,7 @@ public class MyFieldComparator extends FieldComparator<Long> {
 
     @Override
     public int compareTop(int doc) throws IOException {
-        int city = currentCityReader.get(doc);
-        long docValue = 0;
-        if (city == queryCity) {
-            docValue = currentRecommendTimeReader.get(doc);
-        } else {
-            docValue = currentUpdateTimeReader.get(doc);
-        }
+        long docValue = getCorrectValue(doc);
 
         if (topValue < docValue) {
             return -1;
@@ -93,26 +79,30 @@ public class MyFieldComparator extends FieldComparator<Long> {
         }
     }
 
+    private int count = 0;
+
+    private long getCorrectValue(int doc) {
+        count++;
+        if (count % 10 == 0) {
+            System.out.println(count);
+        }
+
+        int recommend = currentRecommendReader.get(doc);
+        int city = currentCityReader.get(doc);
+        long datetime = 0;
+        if (city == queryCity && recommend == this.queryRecommend) {
+            datetime = currentRecommendTimeReader.get(doc);
+        } else {
+            datetime = currentUpdateTimeReader.get(doc);
+        }
+
+        return datetime;
+    }
+
     @Override
     public void copy(int slot, int doc) throws IOException {
-//******************
-        // 测试：
-        // 1. fieldCache中的字段值是从倒排表中读出来的，所以排序的字段必须设为索引字段
-        // 2. 用来排序的字段在索引的时候不能拆分（tokenized），因为fieldCache数组中，每个文档只对应一个字段值，拆分的话，cache中只会保存在词典中靠后的值。
 
-        /*    BytesRef bytesRef = new BytesRef();
-        binaryDocValues.get(doc, bytesRef);
-        String value = bytesRef.utf8ToString();
-        System.out.println("这里读到的：文档" + doc + "  值：" + value);*/
-//******************
-
-        int city = currentCityReader.get(doc);
-        long v2 = 0;
-        if (city == queryCity) {
-            v2 = currentRecommendTimeReader.get(doc);
-        } else {
-            v2 = currentUpdateTimeReader.get(doc);
-        }
+        long v2 = getCorrectValue(doc);
 
         values[slot] = v2;
     }
@@ -122,11 +112,8 @@ public class MyFieldComparator extends FieldComparator<Long> {
         // 字段固定
         currentRecommendTimeReader = FieldCache.DEFAULT.getLongs(context.reader(), "recommendTime", false);
         currentUpdateTimeReader = FieldCache.DEFAULT.getLongs(context.reader(), "updateTime", false);
-        currentCityReader = FieldCache.DEFAULT.getInts(context.reader(), "city", parser, false);// setDocsWithField 是什么意思没有看懂
-
-        // 测试用的
-        binaryDocValues = FieldCache.DEFAULT.getTerms(context.reader(), "soilLoctionIdSearch", false);
-
+        currentCityReader = FieldCache.DEFAULT.getInts(context.reader(), "cityInt", false);
+        currentRecommendReader = FieldCache.DEFAULT.getInts(context.reader(), "recommendInt", false);
         return this;
     }
 

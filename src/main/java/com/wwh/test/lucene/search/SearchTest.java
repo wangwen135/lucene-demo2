@@ -42,7 +42,7 @@ public class SearchTest {
 
         // 优先级1：优先取后台做了手动推荐到app首页，且推荐土地区域包括在当前城市范围内的土地，按照推荐时间降序排
         BooleanQuery condition1 = new BooleanQuery();
-        condition1.add(new TermQuery(new Term("recommend", "2")), BooleanClause.Occur.MUST);
+        condition1.add(new TermQuery(new Term("recommend", "1")), BooleanClause.Occur.MUST);
         condition1.add(new TermQuery(new Term("city", "12")), BooleanClause.Occur.MUST);
         condition1.setBoost(100);// 权重100
         bQuery.add(condition1, BooleanClause.Occur.SHOULD);

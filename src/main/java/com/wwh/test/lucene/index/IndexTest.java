@@ -49,8 +49,13 @@ public class IndexTest {
             doc.add(new IntField("status", Integer.parseInt(ss[2]), Field.Store.YES));
             // 省份 ,城市,区县
             doc.add(new StringField("province", ss[3], Field.Store.YES));
+            doc.add(new IntField("provinceInt", Integer.parseInt(ss[3]), Field.Store.YES));
+            
             doc.add(new StringField("city", ss[4], Field.Store.YES));
+            doc.add(new IntField("cityInt", Integer.parseInt(ss[4]), Field.Store.YES));
+            
             doc.add(new StringField("county", ss[5], Field.Store.YES));
+            doc.add(new IntField("countyInt", Integer.parseInt(ss[5]), Field.Store.YES));
 
             // 现在的搜索是省市区加空格拼接的，这里模拟一下
             doc.add(new TextField("soilLoctionIdSearch", ss[3] + " " + ss[4] + " " + ss[5], Field.Store.NO));
